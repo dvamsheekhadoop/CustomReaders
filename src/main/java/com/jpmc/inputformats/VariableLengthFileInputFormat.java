@@ -70,8 +70,7 @@ public class VariableLengthFileInputFormat extends
 								splitSize, in);
 						splits.add(makeSplit(path, length - bytesRemaining,
 								variableSplitSize,
-								blkLocations[blkIndex].getHosts(),
-								blkLocations[blkIndex].getCachedHosts()));
+								blkLocations[blkIndex].getHosts()));
 						bytesRemaining -= variableSplitSize;
 					}
 
@@ -80,13 +79,11 @@ public class VariableLengthFileInputFormat extends
 								- bytesRemaining);
 						splits.add(makeSplit(path, length - bytesRemaining,
 								bytesRemaining,
-								blkLocations[blkIndex].getHosts(),
-								blkLocations[blkIndex].getCachedHosts()));
+								blkLocations[blkIndex].getHosts()));
 					}
 				} else { // not splitable
 					splits.add(makeSplit(path, 0, length,
-							blkLocations[0].getHosts(),
-							blkLocations[0].getCachedHosts()));
+							blkLocations[0].getHosts()));
 				}
 			} else {
 				// Create empty hosts array for zero length files
@@ -105,15 +102,16 @@ public class VariableLengthFileInputFormat extends
 		long pos = previousPosition;
 		in.seek(previousPosition);
 		while (in.available() > 0) {
-			int len = in.readInt();
+			int len = in.readInt() + 4;
 			pos += len;
 			if (pos < defaultSize + previousPosition) {
-				in.seek(len);
+				in.seek(pos);
 			} else {
 				currentSplitSize = pos - previousPosition;
 				break;
 			}
 		}
+		previousPosition = pos;
 		return currentSplitSize;
 	}
 
