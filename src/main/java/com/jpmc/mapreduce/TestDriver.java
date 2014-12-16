@@ -18,7 +18,8 @@ public class TestDriver extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 
 		Configuration conf = getConf();
-
+		conf.setLong("inputfile.header.bytes", 10);
+		conf.setLong("inputfile.footer.bytes", 10);
 		Job job = Job.getInstance(conf, "Case Count");
 		job.setJarByClass(TestDriver.class);
 

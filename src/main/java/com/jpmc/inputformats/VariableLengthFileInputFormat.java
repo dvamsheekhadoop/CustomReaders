@@ -40,6 +40,9 @@ public class VariableLengthFileInputFormat extends
 		long minSize = Math.max(getFormatMinSplitSize(), getMinSplitSize(job));
 		long maxSize = getMaxSplitSize(job);
 
+		long headerSize = getHeaderSize(job);
+		long footerSize = getFooterSize(job);
+
 		// generate splits
 		List<InputSplit> splits = new ArrayList<InputSplit>();
 		List<FileStatus> files = listStatus(job);
@@ -48,6 +51,7 @@ public class VariableLengthFileInputFormat extends
 		for (FileStatus file : files) {
 			Path path = file.getPath();
 			long length = file.getLen();
+			long contentLength = length - headerSize - footerSize;
 			fs = path.getFileSystem(job.getConfiguration());
 			if (length != 0) {
 				BlockLocation[] blkLocations;
@@ -61,15 +65,17 @@ public class VariableLengthFileInputFormat extends
 					long blockSize = file.getBlockSize();
 					long splitSize = computeSplitSize(blockSize, minSize,
 							maxSize);
-					long bytesRemaining = length;
+
+					long bytesRemaining = contentLength;
+					previousPosition = headerSize;
 					in = fs.open(path);
 					while (((double) bytesRemaining) / splitSize > SPLIT_SLOP) {
 						int blkIndex = getBlockIndex(blkLocations, length
-								- bytesRemaining);
+								- bytesRemaining - footerSize);
 						long variableSplitSize = computeVariableSplitSize(
 								splitSize, in);
-						splits.add(makeSplit(path, length - bytesRemaining,
-								variableSplitSize,
+						splits.add(makeSplit(path, length - bytesRemaining
+								- footerSize, variableSplitSize,
 								blkLocations[blkIndex].getHosts()));
 						bytesRemaining -= variableSplitSize;
 					}
@@ -77,12 +83,12 @@ public class VariableLengthFileInputFormat extends
 					if (bytesRemaining != 0) {
 						int blkIndex = getBlockIndex(blkLocations, length
 								- bytesRemaining);
-						splits.add(makeSplit(path, length - bytesRemaining,
-								bytesRemaining,
+						splits.add(makeSplit(path, length - bytesRemaining
+								- footerSize, bytesRemaining,
 								blkLocations[blkIndex].getHosts()));
 					}
 				} else { // not splitable
-					splits.add(makeSplit(path, 0, length,
+					splits.add(makeSplit(path, headerSize, length - footerSize,
 							blkLocations[0].getHosts()));
 				}
 			} else {
@@ -120,6 +126,14 @@ public class VariableLengthFileInputFormat extends
 		final CompressionCodec codec = new CompressionCodecFactory(
 				context.getConfiguration()).getCodec(file);
 		return (null == codec);
+	}
+
+	private long getHeaderSize(JobContext job) {
+		return job.getConfiguration().getLong("inputfile.header.bytes", 0);
+	}
+
+	private long getFooterSize(JobContext job) {
+		return job.getConfiguration().getLong("inputfile.footer.bytes", 0);
 	}
 
 }

@@ -56,11 +56,16 @@ public class SampleDataService {
 
 		try {
 			DataOutputStream dout = new DataOutputStream(fout);
+			String header = "1234567890";
+			String footer = "1234567890";
+			int len = header.getBytes().length;
+			dout.write(header.getBytes());
 			for (int i = 0; i < 100; i++) {
 				Test t = new Test(dg.randomPositiveInt(),
 						dg.randomPositiveDouble(), dg.randomString(10, 100));
 				writeFile(dout, t);
 			}
+			dout.write(footer.getBytes());
 			dout.flush();
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -74,7 +79,6 @@ public class SampleDataService {
 
 		int len = test.getDescription().getBytes().length;
 		int rlen = 4 + 8 + 4 + len;
-
 		dout.writeInt(rlen);
 		dout.writeInt(test.getId());
 		dout.writeDouble(test.getValue());
