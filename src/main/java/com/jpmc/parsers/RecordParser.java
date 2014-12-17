@@ -54,20 +54,38 @@ public class RecordParser {
 		return fields;
 	}
 
-	// Yet to finish
 	public static List<?> parseFixedWidthBinaryRecord(byte[] record,
 			String fieldDefinition) {
 		List<FieldDefinition> fds = FieldDefinitionParser
 				.parse(fieldDefinition);
-
+		ByteBuffer bb = ByteBuffer.wrap(record);
 		List fields = new ArrayList();
 		for (FieldDefinition fd : fds) {
 			switch (fd.getDataType()) {
 			case DataType.SHORT:
-				// TO DO
+				fields.add(bb.getShort());
 				break;
-			// TO DO all the cases;
-
+			case DataType.BYTE:
+				fields.add(bb.get());
+				break;
+			case DataType.INT:
+				fields.add(bb.getInt());
+				break;
+			case DataType.LONG:
+				fields.add(bb.getLong());
+				break;
+			case DataType.FLOAT:
+				fields.add(bb.getFloat());
+				break;
+			case DataType.DOUBLE:
+				fields.add(bb.getDouble());
+				break;
+			case DataType.STRING:
+				byte[] stringBytes = new byte[fd.getEndPos() - fd.getStartPos()];
+				fields.add(bb.get(stringBytes));
+				break;
+			default:
+				break;
 			}
 		}
 		return fields;

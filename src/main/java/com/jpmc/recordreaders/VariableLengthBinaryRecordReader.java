@@ -35,12 +35,14 @@ public class VariableLengthBinaryRecordReader extends
 	private long end;
 	private long numRecordsRemainingInSplit;
 	private FSDataInputStream fileIn;
+	private FSDataInputStream fileIn2;
 	private Seekable filePosition;
 	private LongWritable key;
 	private BytesWritable value;
 	private boolean isCompressedInput;
 	private Decompressor decompressor;
 	private InputStream inputStream;
+	private InputStream inputStream2;
 
 	@Override
 	public void initialize(InputSplit genericSplit, TaskAttemptContext context)
@@ -61,6 +63,7 @@ public class VariableLengthBinaryRecordReader extends
 		// open the file and seek to the start of the split
 		final FileSystem fs = file.getFileSystem(job);
 		fileIn = fs.open(file);
+		fileIn2 = fs.open(file);
 
 		CompressionCodec codec = new CompressionCodecFactory(job)
 				.getCodec(file);
@@ -75,8 +78,10 @@ public class VariableLengthBinaryRecordReader extends
 			LOG.info("Compressed input; cannot compute number of records in the split");
 		} else {
 			fileIn.seek(start);
+			fileIn2.seek(start);
 			filePosition = fileIn;
 			inputStream = fileIn;
+			inputStream2 = fileIn2;
 			long splitSize = end - start;
 			numRecordsRemainingInSplit = splitSize;
 			LOG.info("Expecting " + numRecordsRemainingInSplit
@@ -96,15 +101,17 @@ public class VariableLengthBinaryRecordReader extends
 			value = new BytesWritable(new byte[recordLength]);
 		}
 		boolean dataRead = false;
-		byte[] recordLengthBytes = new byte[4];
-		// Read the size of the record
-		inputStream.read(recordLengthBytes, 0, recordLengthBytes.length);
-		ByteBuffer bb = ByteBuffer.wrap(recordLengthBytes);
-		int recordLength = bb.getInt();
-		value.setSize(recordLength);
 
-		byte[] record = value.getBytes();
-		if (pos <= end) {
+		// Read the size of the record
+
+		if (pos < end) {
+			byte[] recordLengthBytes = new byte[4];
+			inputStream.read(recordLengthBytes, 0, recordLengthBytes.length);
+			ByteBuffer bb = ByteBuffer.wrap(recordLengthBytes);
+			int recordLength = bb.getInt();
+			value.setSize(recordLength);
+			byte[] record = value.getBytes();
+			pos = pos + 4;// set the position after record length bytes.
 			key.set(pos);
 			int offset = 0;
 			int numBytesToRead = recordLength;

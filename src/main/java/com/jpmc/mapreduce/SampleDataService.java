@@ -58,11 +58,10 @@ public class SampleDataService {
 			DataOutputStream dout = new DataOutputStream(fout);
 			String header = "1234567890";
 			String footer = "1234567890";
-			int len = header.getBytes().length;
 			dout.write(header.getBytes());
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < 10000000; i++) {
 				Test t = new Test(dg.randomPositiveInt(),
-						dg.randomPositiveDouble(), dg.randomString(10, 100));
+						dg.randomPositiveDouble(), dg.randomString(10, 11));
 				writeFile(dout, t);
 			}
 			dout.write(footer.getBytes());
